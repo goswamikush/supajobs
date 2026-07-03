@@ -18,7 +18,7 @@ console.log('Logging into ECR...');
 run(`aws ecr get-login-password --region ${region} | docker login --username AWS --password-stdin ${accountId}.dkr.ecr.${region}.amazonaws.com`);
 
 console.log('Building base image...');
-run(`docker build -f Dockerfile.base -t ${baseRepo}:latest .`);
+run(`docker build --platform linux/amd64 -f Dockerfile.base -t ${baseRepo}:latest .`);
 
 console.log('Pushing base image...');
 run(`docker push ${baseRepo}:latest`);
