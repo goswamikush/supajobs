@@ -11,10 +11,14 @@ const command = process.argv[2];
 
 if (!command || !commands[command]) {
   console.log(`
-Usage:
-  supajobs init     — connect Supabase and scaffold worker
-  supajobs deploy   — build and deploy your worker to AWS
-  `);
+\x1b[32m  SUPAJOBS\x1b[0m \x1b[2m— Background jobs for Supabase developers. No DevOps required.\x1b[0m
+
+  \x1b[1mUsage:\x1b[0m supajobs <command>
+
+  \x1b[1mCommands:\x1b[0m
+    \x1b[32minit\x1b[0m      Connect your Supabase project and scaffold your first worker
+    \x1b[32mdeploy\x1b[0m    Build and deploy your workers to AWS
+`);
   process.exit(0);
 }
 
