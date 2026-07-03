@@ -1,0 +1,14 @@
+node_modules/
+dist/
+
+# SupaJobs local config (contains secrets)
+.supajobs/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# OS
+.DS_Store

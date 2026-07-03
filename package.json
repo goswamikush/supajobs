@@ -1,0 +1,31 @@
+{
+  "name": "supajobs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "^11.9.0",
+      "onFail": "download"
+    }
+  },
+  "type": "module",
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "tsx": "^4.22.5",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "@aws-sdk/client-codebuild": "^3.1078.0",
+    "@aws-sdk/client-ecr": "^3.1078.0",
+    "@aws-sdk/client-ecs": "^3.1078.0",
+    "@aws-sdk/client-s3": "^3.1078.0"
+  }
+}
