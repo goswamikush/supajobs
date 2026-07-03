@@ -43,7 +43,7 @@ async function updateJob(fields: Record<string, unknown>) {
 }
 
 // @ts-ignore - worker.js is provided by the user at deploy time
-const worker = await import('./worker.js');
+const worker = await import('../worker.js');
 
 await updateJob({ status: JobStatus.Running, started_at: new Date().toISOString() });
 
