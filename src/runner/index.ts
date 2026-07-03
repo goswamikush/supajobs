@@ -48,9 +48,9 @@ if (!workerName) {
   process.exit(1);
 }
 
-const JOB_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+const JOB_TIMEOUT_MS = 60 * 60 * 1000; // 1 hour
 setTimeout(async () => {
-  await updateJob({ status: JobStatus.Failed, finished_at: new Date().toISOString(), logs: logs.join('\n'), error: 'Job timed out after 15 minutes' });
+  await updateJob({ status: JobStatus.Failed, finished_at: new Date().toISOString(), logs: logs.join('\n'), error: 'Job timed out after 1 hour' });
   process.exit(1);
 }, JOB_TIMEOUT_MS).unref();
 
