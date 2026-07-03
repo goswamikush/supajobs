@@ -7,7 +7,14 @@
     "supajobs": "./src/cli/index.ts"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc",
+    "infra:init": "terraform -chdir=terraform init",
+    "infra:plan": "terraform -chdir=terraform plan",
+    "infra:apply": "terraform -chdir=terraform apply",
+    "infra:destroy": "terraform -chdir=terraform destroy",
+    "deploy:lambda": "tsx scripts/deploy-lambda.ts",
+    "deploy:base": "tsx scripts/deploy-base.ts",
+    "setup": "npm run infra:apply && npm run deploy:base && npm run deploy:lambda && npm link"
   },
   "keywords": [],
   "author": "",
