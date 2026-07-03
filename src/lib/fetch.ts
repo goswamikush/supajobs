@@ -2,7 +2,7 @@ export async function fetchWithRetry(url: string, options: RequestInit, retries 
   for (let i = 0; i < retries; i++) {
     try {
       const res = await fetch(url, options);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
       return res;
     } catch (err) {
       if (i === retries - 1) throw err;
