@@ -15,12 +15,23 @@ const RequestBody = z.object({
   payload: z.record(z.string(), z.unknown()).optional(),
 });
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
 export const handler = async (event: APIGatewayProxyEventV2) => {
+  if (event.requestContext.http.method === 'OPTIONS') {
+    return { statusCode: 204, headers: CORS_HEADERS, body: '' };
+  }
+
   const result = RequestBody.safeParse(JSON.parse(event.body ?? '{}'));
 
   if (!result.success) {
     return {
       statusCode: 400,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: result.error.flatten() }),
     };
   }
@@ -86,6 +97,7 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
 
     return {
       statusCode: 200,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ jobId }),
     };
   } catch (err) {
@@ -93,6 +105,7 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
     console.error(`[INTERNAL ERROR] ${error}`);
     return {
       statusCode: 500,
+      headers: CORS_HEADERS,
       body: JSON.stringify({ error: 'Internal server error' }),
     };
   }

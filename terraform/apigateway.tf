@@ -17,6 +17,12 @@ resource "aws_apigatewayv2_route" "run" {
   target    = "integrations/${aws_apigatewayv2_integration.trigger.id}"
 }
 
+resource "aws_apigatewayv2_route" "run_options" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "OPTIONS /run"
+  target    = "integrations/${aws_apigatewayv2_integration.trigger.id}"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.main.id
   name        = "$default"
