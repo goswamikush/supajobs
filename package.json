@@ -14,7 +14,9 @@
     "infra:destroy": "terraform -chdir=terraform destroy",
     "deploy:lambda": "tsx scripts/deploy-lambda.ts",
     "deploy:base": "tsx scripts/deploy-base.ts",
-    "setup": "npm run infra:apply && npm run deploy:base && npm run deploy:lambda && npm link"
+    "setup": "npm run infra:apply && npm run deploy:base && npm run deploy:lambda && npm link",
+    "kill": "aws lambda put-function-concurrency --function-name supajobs-trigger --reserved-concurrent-executions 0 --region us-east-1 && aws ecs list-tasks --cluster supajobs --region us-east-1 --query 'taskArns[]' --output text | xargs -I {} aws ecs stop-task --cluster supajobs --task {} --region us-east-1",
+    "resume": "aws lambda delete-function-concurrency --function-name supajobs-trigger --region us-east-1"
   },
   "keywords": [],
   "author": "",
