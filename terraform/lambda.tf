@@ -11,7 +11,7 @@ data "archive_file" "lambda_placeholder" {
 resource "aws_lambda_function" "trigger" {
   function_name = "${var.project}-trigger"
   role          = aws_iam_role.lambda.arn
-  handler       = "index.handler"
+  handler       = "lambda/index.handler"
   runtime       = "nodejs20.x"
   timeout       = 30
   memory_size   = 256
