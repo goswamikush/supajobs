@@ -1,0 +1,16 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+
+  build:
+    commands:
+      - docker build -t $ECR_REPO:$PROJECT_KEY .
+      - docker tag $ECR_REPO:$PROJECT_KEY $ECR_REPO:latest
+
+  post_build:
+    commands:
+      - docker push $ECR_REPO:$PROJECT_KEY
+      - docker push $ECR_REPO:latest
