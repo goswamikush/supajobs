@@ -12,6 +12,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "builds" {
     id     = "delete-old-builds"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = 1
     }
