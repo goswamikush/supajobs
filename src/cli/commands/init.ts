@@ -14,8 +14,7 @@ const INFRA = {
 
 const CONFIG_DIR = '.supajobs';
 const CONFIG_FILE = `${CONFIG_DIR}/config.json`;
-const WORKER_DIR = 'supajobs';
-const WORKER_FILE = `${WORKER_DIR}/worker.js`;
+const WORKER_DIR = 'supajobs/workers';
 
 export async function init() {
   p.intro('SupaJobs init');
@@ -78,10 +77,10 @@ export async function init() {
   writeFileSync(CONFIG_FILE, JSON.stringify({ projectKey, supabaseUrl }, null, 2));
   ensureGitignore();
 
-  if (!existsSync(WORKER_FILE)) {
+  if (!existsSync(WORKER_DIR)) {
     mkdirSync(WORKER_DIR, { recursive: true });
-    writeFileSync(WORKER_FILE, WORKER_TEMPLATE);
-    p.log.info('Scaffolded supajobs/worker.js');
+    writeFileSync(`${WORKER_DIR}/my-job.js`, WORKER_TEMPLATE);
+    p.log.info('Scaffolded supajobs/workers/my-job.js');
   }
 
   p.outro(`Initialized! Your project key: ${projectKey}

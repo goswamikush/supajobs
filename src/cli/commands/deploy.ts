@@ -19,7 +19,7 @@ const INFRA = {
 };
 
 const CONFIG_FILE = '.supajobs/config.json';
-const WORKER_DIR = 'supajobs';
+const WORKER_DIR = 'supajobs';  // zip the whole supajobs/ dir so workers/ is included
 const ZIP_PATH = '/tmp/supajobs-worker.zip';
 
 enum BuildStatus {
@@ -38,8 +38,8 @@ export async function deploy() {
     process.exit(1);
   }
 
-  if (!existsSync(WORKER_DIR)) {
-    p.cancel('No supajobs/ directory found. Run supajobs init first.');
+  if (!existsSync(`${WORKER_DIR}/workers`)) {
+    p.cancel('No supajobs/workers/ directory found. Run supajobs init first.');
     process.exit(1);
   }
 
@@ -102,6 +102,7 @@ export async function deploy() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       projectKey: '${projectKey}',
+      workerName: 'my-job',
       payload: { your: 'data' },
     }),
   });
