@@ -4,10 +4,16 @@
   "description": "",
   "main": "index.js",
   "bin": {
-    "supajobs": "./src/cli/index.ts"
+    "supajobs": "./dist/cli/index.js"
   },
+  "files": [
+    "dist/cli",
+    "dist/lib",
+    "Dockerfile"
+  ],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "pnpm run build",
     "infra:init": "terraform -chdir=terraform init",
     "infra:plan": "terraform -chdir=terraform plan",
     "infra:apply": "terraform -chdir=terraform apply",

@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+#!/usr/bin/env node
 import { init } from './commands/init.js';
 import { deploy } from './commands/deploy.js';
 
