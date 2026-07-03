@@ -7,6 +7,10 @@ output "ecr_repository_url" {
   value = aws_ecr_repository.worker.repository_url
 }
 
+output "ecr_base_repository_url" {
+  value = aws_ecr_repository.base.repository_url
+}
+
 output "ecs_cluster_name" {
   value = aws_ecs_cluster.main.name
 }

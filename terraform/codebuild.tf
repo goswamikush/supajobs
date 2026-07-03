@@ -25,6 +25,11 @@ resource "aws_codebuild_project" "worker" {
     }
 
     environment_variable {
+      name  = "BASE_IMAGE"
+      value = "${aws_ecr_repository.base.repository_url}:latest"
+    }
+
+    environment_variable {
       name  = "AWS_ACCOUNT_ID"
       value = data.aws_caller_identity.current.account_id
     }
