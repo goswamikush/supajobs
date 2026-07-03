@@ -48,6 +48,12 @@ if (!workerName) {
   process.exit(1);
 }
 
+const JOB_TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+setTimeout(async () => {
+  await updateJob({ status: JobStatus.Failed, finished_at: new Date().toISOString(), logs: logs.join('\n'), error: 'Job timed out after 15 minutes' });
+  process.exit(1);
+}, JOB_TIMEOUT_MS).unref();
+
 // @ts-ignore - workers are provided by the user at deploy time
 const worker = await import(`../workers/${workerName}.js`);
 
