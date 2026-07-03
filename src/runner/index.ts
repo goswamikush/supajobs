@@ -1,15 +1,5 @@
-const ENV = {
-  PAYLOAD: 'PAYLOAD',
-  JOB_ID: 'JOB_ID',
-  SUPABASE_URL: 'SUPABASE_URL',
-  SUPABASE_SERVICE_ROLE_KEY: 'SUPABASE_SERVICE_ROLE_KEY',
-} as const;
-
-enum JobStatus {
-  Running = 'running',
-  Completed = 'completed',
-  Failed = 'failed',
-}
+import { fetchWithRetry } from '../lib/fetch.js';
+import { ENV, JobStatus } from '../lib/constants.js';
 
 const payload = process.env[ENV.PAYLOAD] ? JSON.parse(process.env[ENV.PAYLOAD]!) : {};
 const jobId = process.env[ENV.JOB_ID];
@@ -20,28 +10,11 @@ const logs: string[] = [];
 
 // Write to both stdout and logs array
 const originalLog = console.log;
-
 console.log = (...args) => {
   const line = args.join(' ');
   logs.push(line);
   originalLog(line);
 };
-
-async function fetchWithRetry(url: string, options: RequestInit, retries = 3): Promise<Response> {
-  for (let i = 0; i < retries; i++) {
-    try {
-      const res = await fetch(url, options);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res;
-    } catch (err) {
-      if (i === retries - 1) throw err;
-      const base = 2 ** i * 500;
-      const jitter = Math.random() * 200;
-      await new Promise(r => setTimeout(r, base + jitter));
-    }
-  }
-  throw new Error('Failed after retries');
-}
 
 async function updateJob(fields: Record<string, unknown>) {
   const missing: string[] = [];

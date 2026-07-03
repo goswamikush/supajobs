@@ -1,0 +1,18 @@
+export const ENV = {
+  PAYLOAD: 'PAYLOAD',
+  JOB_ID: 'JOB_ID',
+  SUPABASE_URL: 'SUPABASE_URL',
+  SUPABASE_SERVICE_ROLE_KEY: 'SUPABASE_SERVICE_ROLE_KEY',
+  PROJECTS_TABLE: 'PROJECTS_TABLE',
+  ECS_CLUSTER: 'ECS_CLUSTER',
+  ECS_TASK_DEFINITION: 'ECS_TASK_DEFINITION',
+  ECS_SUBNETS: 'ECS_SUBNETS',
+  ECS_SECURITY_GROUP: 'ECS_SECURITY_GROUP',
+} as const;
+
+export enum JobStatus {
+  Pending = 'pending',
+  Running = 'running',
+  Completed = 'completed',
+  Failed = 'failed',
+}
