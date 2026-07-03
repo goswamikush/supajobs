@@ -1,5 +1,5 @@
 import * as p from '@clack/prompts';
-import { existsSync, readFileSync, createReadStream, copyFileSync } from 'fs';
+import { existsSync, readFileSync, createReadStream, copyFileSync, unlinkSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -48,9 +48,13 @@ export async function deploy() {
   const spinner = p.spinner();
 
   spinner.start('Zipping supajobs/');
-  const dockerfileSrc = join(__dirname, '../../../Dockerfile');
-  copyFileSync(dockerfileSrc, `${WORKER_DIR}/Dockerfile`);
-  execSync(`zip -r ${ZIP_PATH} .`, { cwd: WORKER_DIR });
+  const dockerfileDest = `${WORKER_DIR}/Dockerfile`;
+  copyFileSync(join(__dirname, '../../../Dockerfile'), dockerfileDest);
+  try {
+    execSync(`zip -r ${ZIP_PATH} .`, { cwd: WORKER_DIR });
+  } finally {
+    unlinkSync(dockerfileDest);
+  }
   spinner.stop('Zipped supajobs/');
 
   const s3Key = `builds/${projectKey}/worker.zip`;
