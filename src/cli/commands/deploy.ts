@@ -1,12 +1,22 @@
 import * as p from '@clack/prompts';
-import { existsSync, readFileSync, createReadStream } from 'fs';
+import { existsSync, readFileSync, createReadStream, copyFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { CodeBuildClient, StartBuildCommand, BatchGetBuildsCommand } from '@aws-sdk/client-codebuild';
-import { ENV } from '../../lib/constants.js';
 import { execSync } from 'child_process';
 
-const s3 = new S3Client({});
-const codebuild = new CodeBuildClient({});
+const s3 = new S3Client({ region: 'us-east-1' });
+const codebuild = new CodeBuildClient({ region: 'us-east-1' });
+
+// SupaJobs infrastructure — updated when infra changes
+const INFRA = {
+  BUILDS_BUCKET: 'supajobs-builds-976075257993',
+  CODEBUILD_PROJECT: 'supajobs-worker',
+  API_URL: 'https://1c34w32pgh.execute-api.us-east-1.amazonaws.com',
+};
 
 const CONFIG_FILE = '.supajobs/config.json';
 const WORKER_DIR = 'supajobs';
@@ -38,6 +48,8 @@ export async function deploy() {
   const spinner = p.spinner();
 
   spinner.start('Zipping supajobs/');
+  const dockerfileSrc = join(__dirname, '../../../Dockerfile');
+  copyFileSync(dockerfileSrc, `${WORKER_DIR}/Dockerfile`);
   execSync(`zip -r ${ZIP_PATH} .`, { cwd: WORKER_DIR });
   spinner.stop('Zipped supajobs/');
 
@@ -45,7 +57,7 @@ export async function deploy() {
 
   spinner.start('Uploading to S3');
   await s3.send(new PutObjectCommand({
-    Bucket: process.env[ENV.BUILDS_BUCKET],
+    Bucket: INFRA.BUILDS_BUCKET,
     Key: s3Key,
     Body: createReadStream(ZIP_PATH),
   }));
@@ -53,11 +65,11 @@ export async function deploy() {
 
   spinner.start('Starting build');
   const { build } = await codebuild.send(new StartBuildCommand({
-    projectName: process.env[ENV.CODEBUILD_PROJECT],
+    projectName: INFRA.CODEBUILD_PROJECT,
     sourceTypeOverride: 'S3',
-    sourceLocationOverride: `${process.env[ENV.BUILDS_BUCKET]}/${s3Key}`,
+    sourceLocationOverride: `${INFRA.BUILDS_BUCKET}/${s3Key}`,
     environmentVariablesOverride: [
-      { name: ENV.PROJECT_KEY, value: projectKey },
+      { name: 'PROJECT_KEY', value: projectKey },
     ],
   }));
   spinner.stop(`Build started: ${build!.id}`);
@@ -83,5 +95,16 @@ export async function deploy() {
     }
   }
 
-  p.outro('Deployed successfully! Your worker is ready to run jobs.');
+  p.outro(`Deployed! Trigger a job from anywhere:
+
+  await fetch('${INFRA.API_URL}/run', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      projectKey: '${projectKey}',
+      payload: { your: 'data' },
+    }),
+  });
+
+  Watch status in your Supabase supajobs_jobs table.`);
 }

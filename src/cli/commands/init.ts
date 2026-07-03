@@ -3,9 +3,14 @@ import { randomBytes } from 'crypto';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-import { ENV } from '../../lib/constants.js';
 
-const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
+const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }));
+
+// SupaJobs infrastructure — updated when infra changes
+const INFRA = {
+  PROJECTS_TABLE: 'supajobs-projects',
+  API_URL: 'https://1c34w32pgh.execute-api.us-east-1.amazonaws.com',
+};
 
 const CONFIG_DIR = '.supajobs';
 const CONFIG_FILE = `${CONFIG_DIR}/config.json`;
@@ -55,7 +60,7 @@ export async function init() {
 
   spinner.start('Registering project');
   await dynamo.send(new PutCommand({
-    TableName: process.env[ENV.PROJECTS_TABLE],
+    TableName: INFRA.PROJECTS_TABLE,
     Item: {
       projectKey,
       supabaseUrl,
@@ -83,7 +88,7 @@ export async function init() {
 
   Trigger a job from your code:
 
-    await fetch('${process.env.API_URL}/run', {
+    await fetch('${INFRA.API_URL}/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ projectKey: '${projectKey}', payload: {} }),
