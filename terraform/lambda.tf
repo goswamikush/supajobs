@@ -21,11 +21,12 @@ resource "aws_lambda_function" "trigger" {
 
   environment {
     variables = {
-      PROJECTS_TABLE     = aws_dynamodb_table.projects.name
-      ECS_CLUSTER        = aws_ecs_cluster.main.name
+      PROJECTS_TABLE      = aws_dynamodb_table.projects.name
+      ECS_CLUSTER         = aws_ecs_cluster.main.name
       ECS_TASK_DEFINITION = aws_ecs_task_definition.worker.family
-      ECS_SUBNETS        = join(",", data.aws_subnets.default.ids)
-      ECS_SECURITY_GROUP = aws_security_group.worker.id
+      ECS_SUBNETS         = join(",", data.aws_subnets.default.ids)
+      ECS_SECURITY_GROUP  = aws_security_group.worker.id
+      ECR_WORKER_REPO     = aws_ecr_repository.worker.repository_url
     }
   }
 

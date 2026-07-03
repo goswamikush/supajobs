@@ -11,6 +11,7 @@ const ecs = new ECSClient({});
 
 const RequestBody = z.object({
   projectKey: z.string(),
+  workerName: z.string().regex(/^[a-z0-9-]+$/, 'workerName must be lowercase alphanumeric with hyphens'),
   payload: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -24,7 +25,7 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
     };
   }
 
-  const { projectKey, payload } = result.data;
+  const { projectKey, workerName, payload } = result.data;
   const jobId = crypto.randomUUID();
 
   try {
@@ -71,8 +72,10 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
       overrides: {
         containerOverrides: [{
           name: 'worker',
+          ...({ image: `${process.env[ENV.ECR_WORKER_REPO]}:${projectKey}` } as any),
           environment: [
             { name: ENV.JOB_ID, value: jobId },
+            { name: ENV.WORKER_NAME, value: workerName },
             { name: ENV.PAYLOAD, value: JSON.stringify(payload ?? {}) },
             { name: ENV.SUPABASE_URL, value: supabaseUrl },
             { name: ENV.SUPABASE_SERVICE_ROLE_KEY, value: supabaseServiceRoleKey },

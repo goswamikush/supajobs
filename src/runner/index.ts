@@ -3,6 +3,7 @@ import { ENV, JobStatus } from '../lib/constants.js';
 
 const payload = process.env[ENV.PAYLOAD] ? JSON.parse(process.env[ENV.PAYLOAD]!) : {};
 const jobId = process.env[ENV.JOB_ID];
+const workerName = process.env[ENV.WORKER_NAME];
 const supabaseUrl = process.env[ENV.SUPABASE_URL];
 const supabaseKey = process.env[ENV.SUPABASE_SERVICE_ROLE_KEY];
 
@@ -42,8 +43,13 @@ async function updateJob(fields: Record<string, unknown>) {
   }
 }
 
-// @ts-ignore - worker.js is provided by the user at deploy time
-const worker = await import('../worker.js');
+if (!workerName) {
+  console.error('[INTERNAL ERROR] Missing required env var: WORKER_NAME');
+  process.exit(1);
+}
+
+// @ts-ignore - workers are provided by the user at deploy time
+const worker = await import(`../workers/${workerName}.js`);
 
 await updateJob({ status: JobStatus.Running, started_at: new Date().toISOString() });
 
