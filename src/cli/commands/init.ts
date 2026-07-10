@@ -68,34 +68,35 @@ export async function init() {
 
   const spinner = p.spinner();
 
-  spinner.start('Registering project');
-  const res = await fetchWithRetry(`${INFRA.API_URL}/init`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      inviteCode: credentials.inviteCode,
-      supabaseUrl,
-      supabaseServiceRoleKey: credentials.supabaseServiceRoleKey,
-    }),
-  });
-  const { projectKey } = await res.json() as { projectKey: string };
-  spinner.stop('Project registered');
+  try {
+    spinner.start('Registering project');
+    const res = await fetchWithRetry(`${INFRA.API_URL}/init`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        inviteCode: credentials.inviteCode,
+        supabaseUrl,
+        supabaseServiceRoleKey: credentials.supabaseServiceRoleKey,
+      }),
+    });
+    const { projectKey } = await res.json() as { projectKey: string };
+    spinner.stop('Project registered');
 
-  spinner.start('Provisioning supajobs_jobs table');
-  await provisionJobsTable(supabaseUrl, credentials.pat);
-  spinner.stop('supajobs_jobs table ready');
+    spinner.start('Provisioning supajobs_jobs table');
+    await provisionJobsTable(supabaseUrl, credentials.pat);
+    spinner.stop('supajobs_jobs table ready');
 
-  mkdirSync(CONFIG_DIR, { recursive: true });
-  writeFileSync(CONFIG_FILE, JSON.stringify({ projectKey, supabaseUrl }, null, 2));
-  ensureGitignore();
+    mkdirSync(CONFIG_DIR, { recursive: true });
+    writeFileSync(CONFIG_FILE, JSON.stringify({ projectKey, supabaseUrl }, null, 2));
+    ensureGitignore();
 
-  if (!existsSync(WORKER_DIR)) {
-    mkdirSync(WORKER_DIR, { recursive: true });
-    writeFileSync(`${WORKER_DIR}/my-job.js`, WORKER_TEMPLATE);
-    p.log.info('Scaffolded supajobs/workers/my-job.js');
-  }
+    if (!existsSync(WORKER_DIR)) {
+      mkdirSync(WORKER_DIR, { recursive: true });
+      writeFileSync(`${WORKER_DIR}/my-job.js`, WORKER_TEMPLATE);
+      p.log.info('Scaffolded supajobs/workers/my-job.js');
+    }
 
-  p.outro(`Initialized! Your project key: ${projectKey}
+    p.outro(`Initialized! Your project key: ${projectKey}
 
   Trigger a job from your code:
 
@@ -107,6 +108,12 @@ export async function init() {
 
   Then run: supajobs deploy
   `);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    spinner.stop(message);
+    p.cancel(`Init failed: ${message}`);
+    process.exit(1);
+  }
 }
 
 const WORKER_TEMPLATE = `export default {

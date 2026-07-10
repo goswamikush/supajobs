@@ -41,64 +41,65 @@ export async function deploy() {
 
   const spinner = p.spinner();
 
-  spinner.start('Zipping supajobs/');
-  const dockerfileDest = `${WORKER_DIR}/Dockerfile`;
-  copyFileSync(join(__dirname, '../../../Dockerfile'), dockerfileDest);
   try {
-    execSync(`zip -r ${ZIP_PATH} .`, { cwd: WORKER_DIR });
-  } finally {
-    unlinkSync(dockerfileDest);
-  }
-  spinner.stop('Zipped supajobs/');
+    spinner.start('Zipping supajobs/');
+    const dockerfileDest = `${WORKER_DIR}/Dockerfile`;
+    copyFileSync(join(__dirname, '../../../Dockerfile'), dockerfileDest);
+    try {
+      execSync(`zip -r ${ZIP_PATH} .`, { cwd: WORKER_DIR });
+    } finally {
+      unlinkSync(dockerfileDest);
+    }
+    spinner.stop('Zipped supajobs/');
 
-  spinner.start('Requesting upload URL');
-  const uploadUrlRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/upload-url`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectKey }),
-  });
-  const { uploadUrl } = await uploadUrlRes.json() as { uploadUrl: string };
-  spinner.stop('Got upload URL');
-
-  spinner.start('Uploading build');
-  await fetchWithRetry(uploadUrl, {
-    method: 'PUT',
-    body: readFileSync(ZIP_PATH),
-  });
-  spinner.stop('Uploaded build');
-
-  spinner.start('Starting build');
-  const startRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/start`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ projectKey }),
-  });
-  const { buildId } = await startRes.json() as { buildId: string };
-  spinner.stop(`Build started: ${buildId}`);
-
-  spinner.start('Building image');
-
-  while (true) {
-    await new Promise(r => setTimeout(r, 5000));
-
-    const statusRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/status?buildId=${encodeURIComponent(buildId)}`, {
-      method: 'GET',
+    spinner.start('Requesting upload URL');
+    const uploadUrlRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/upload-url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectKey }),
     });
-    const { status } = await statusRes.json() as { status: string };
+    const { uploadUrl } = await uploadUrlRes.json() as { uploadUrl: string };
+    spinner.stop('Got upload URL');
 
-    if (status === BuildStatus.Succeeded) {
-      spinner.stop('Build succeeded');
-      break;
+    spinner.start('Uploading build');
+    await fetchWithRetry(uploadUrl, {
+      method: 'PUT',
+      body: readFileSync(ZIP_PATH),
+    });
+    spinner.stop('Uploaded build');
+
+    spinner.start('Starting build');
+    const startRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectKey }),
+    });
+    const { buildId } = await startRes.json() as { buildId: string };
+    spinner.stop(`Build started: ${buildId}`);
+
+    spinner.start('Building image');
+
+    while (true) {
+      await new Promise(r => setTimeout(r, 5000));
+
+      const statusRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/status?buildId=${encodeURIComponent(buildId)}`, {
+        method: 'GET',
+      });
+      const { status } = await statusRes.json() as { status: string };
+
+      if (status === BuildStatus.Succeeded) {
+        spinner.stop('Build succeeded');
+        break;
+      }
+
+      if (status === BuildStatus.Failed || status === BuildStatus.Fault || status === BuildStatus.TimedOut || status === BuildStatus.Stopped) {
+        spinner.stop(`Build ${status.toLowerCase()}`);
+        p.cancel('Deploy failed. Check AWS CodeBuild console for logs.');
+        process.exit(1);
+      }
     }
 
-    if (status === BuildStatus.Failed || status === BuildStatus.Fault || status === BuildStatus.TimedOut || status === BuildStatus.Stopped) {
-      spinner.stop(`Build ${status.toLowerCase()}`);
-      p.cancel('Deploy failed. Check AWS CodeBuild console for logs.');
-      process.exit(1);
-    }
-  }
-
-  p.outro(`Deployed! Trigger a job from anywhere:
+    p.outro(`Deployed! Trigger a job from anywhere:
 
   await fetch('${INFRA.API_URL}/run', {
     method: 'POST',
@@ -111,4 +112,10 @@ export async function deploy() {
   });
 
   Watch status in your Supabase supajobs_jobs table.`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    spinner.stop(message);
+    p.cancel(`Deploy failed: ${message}`);
+    process.exit(1);
+  }
 }
