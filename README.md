@@ -15,7 +15,9 @@ One command to set up. One command to deploy. One HTTP call to trigger. Job stat
 3. You trigger it with a single `fetch()` call from anywhere
 4. Status and logs appear in your Supabase `supajobs_jobs` table in real time
 
-Under the hood: AWS Fargate runs your job in an isolated container. AWS Lambda handles the trigger. Your code never shares resources with other users.
+Under the hood: AWS Fargate runs your job in an isolated container, AWS Lambda handles the trigger — all on SupaJobs' own AWS account. You never touch AWS or need credentials of your own; each project's code runs in its own container, isolated from other users.
+
+SupaJobs is currently invite-only while it's early — join the waitlist to get a code (link TBD).
 
 ---
 
@@ -23,7 +25,7 @@ Under the hood: AWS Fargate runs your job in an isolated container. AWS Lambda h
 
 - Node.js 18+
 - A [Supabase](https://supabase.com) project
-- AWS credentials configured locally (`aws configure`)
+- A SupaJobs invite code (see below) — no AWS account of your own needed
 
 ---
 
@@ -47,6 +49,7 @@ This will:
 - Scaffold a `supajobs/workers/` directory with an example worker
 
 You'll need:
+- Your **SupaJobs invite code** (from the waitlist)
 - Your **Supabase project URL** (`https://xxxx.supabase.co`)
 - Your **Supabase service role key** (Settings → API → service_role)
 - A **Supabase Personal Access Token** (supabase.com/dashboard/account/tokens)
