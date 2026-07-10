@@ -1,20 +1,14 @@
 import * as p from '@clack/prompts';
-import { existsSync, readFileSync, createReadStream, copyFileSync, unlinkSync } from 'fs';
+import { existsSync, readFileSync, copyFileSync, unlinkSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { execSync } from 'child_process';
+import { fetchWithRetry } from '../../lib/fetch.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { CodeBuildClient, StartBuildCommand, BatchGetBuildsCommand } from '@aws-sdk/client-codebuild';
-import { execSync } from 'child_process';
-
-const s3 = new S3Client({ region: 'us-east-1' });
-const codebuild = new CodeBuildClient({ region: 'us-east-1' });
 
 // SupaJobs infrastructure — updated when infra changes
 const INFRA = {
-  BUILDS_BUCKET: 'supajobs-builds-976075257993',
-  CODEBUILD_PROJECT: 'supajobs-worker',
   API_URL: 'https://1c34w32pgh.execute-api.us-east-1.amazonaws.com',
 };
 
@@ -57,35 +51,40 @@ export async function deploy() {
   }
   spinner.stop('Zipped supajobs/');
 
-  const s3Key = `builds/${projectKey}/worker.zip`;
+  spinner.start('Requesting upload URL');
+  const uploadUrlRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/upload-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectKey }),
+  });
+  const { uploadUrl } = await uploadUrlRes.json() as { uploadUrl: string };
+  spinner.stop('Got upload URL');
 
-  spinner.start('Uploading to S3');
-  await s3.send(new PutObjectCommand({
-    Bucket: INFRA.BUILDS_BUCKET,
-    Key: s3Key,
-    Body: createReadStream(ZIP_PATH),
-  }));
-  spinner.stop('Uploaded to S3');
+  spinner.start('Uploading build');
+  await fetchWithRetry(uploadUrl, {
+    method: 'PUT',
+    body: readFileSync(ZIP_PATH),
+  });
+  spinner.stop('Uploaded build');
 
   spinner.start('Starting build');
-  const { build } = await codebuild.send(new StartBuildCommand({
-    projectName: INFRA.CODEBUILD_PROJECT,
-    sourceTypeOverride: 'S3',
-    sourceLocationOverride: `${INFRA.BUILDS_BUCKET}/${s3Key}`,
-    environmentVariablesOverride: [
-      { name: 'PROJECT_KEY', value: projectKey },
-    ],
-  }));
-  spinner.stop(`Build started: ${build!.id}`);
+  const startRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/start`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ projectKey }),
+  });
+  const { buildId } = await startRes.json() as { buildId: string };
+  spinner.stop(`Build started: ${buildId}`);
 
   spinner.start('Building image');
-  const buildId = build!.id!;
 
   while (true) {
     await new Promise(r => setTimeout(r, 5000));
 
-    const { builds } = await codebuild.send(new BatchGetBuildsCommand({ ids: [buildId] }));
-    const status = builds![0].buildStatus;
+    const statusRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/status?buildId=${encodeURIComponent(buildId)}`, {
+      method: 'GET',
+    });
+    const { status } = await statusRes.json() as { status: string };
 
     if (status === BuildStatus.Succeeded) {
       spinner.stop('Build succeeded');
