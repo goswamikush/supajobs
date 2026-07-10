@@ -103,7 +103,7 @@ export async function init() {
     await fetch('${INFRA.API_URL}/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectKey: '${projectKey}', payload: {} }),
+      body: JSON.stringify({ projectKey: '${projectKey}', workerName: 'my-job', payload: {} }),
     });
 
   Then run: supajobs deploy
