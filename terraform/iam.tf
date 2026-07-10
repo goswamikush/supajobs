@@ -52,7 +52,7 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = [aws_iam_role.ecs_execution.arn]
   }
   statement {
-    actions   = ["dynamodb:GetItem"]
+    actions   = ["dynamodb:GetItem", "dynamodb:PutItem"]
     resources = [aws_dynamodb_table.projects.arn]
   }
 }

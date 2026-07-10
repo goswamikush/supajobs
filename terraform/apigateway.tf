@@ -23,6 +23,15 @@ resource "aws_apigatewayv2_route" "run_options" {
   target    = "integrations/${aws_apigatewayv2_integration.trigger.id}"
 }
 
+# Catches every other route (/init, /deploy/*, their OPTIONS preflights, etc.) so
+# new endpoints don't need a new aws_apigatewayv2_route each time — the Lambda
+# itself dispatches on method + path.
+resource "aws_apigatewayv2_route" "default" {
+  api_id    = aws_apigatewayv2_api.main.id
+  route_key = "$default"
+  target    = "integrations/${aws_apigatewayv2_integration.trigger.id}"
+}
+
 resource "aws_apigatewayv2_stage" "default" {
   api_id      = aws_apigatewayv2_api.main.id
   name        = "$default"
