@@ -13,6 +13,7 @@ export const ENV = {
   PROJECT_KEY: 'PROJECT_KEY',
   ECR_WORKER_REPO: 'ECR_WORKER_REPO',
   WORKER_NAME: 'WORKER_NAME',
+  INVITE_CODES: 'INVITE_CODES',
 } as const;
 
 export enum JobStatus {

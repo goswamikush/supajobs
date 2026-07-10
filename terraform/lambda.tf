@@ -29,6 +29,7 @@ resource "aws_lambda_function" "trigger" {
       ECR_WORKER_REPO     = aws_ecr_repository.worker.repository_url
       BUILDS_BUCKET       = aws_s3_bucket.builds.bucket
       CODEBUILD_PROJECT   = aws_codebuild_project.worker.name
+      INVITE_CODES        = var.invite_codes
     }
   }
 

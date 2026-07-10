@@ -158,15 +158,23 @@ async function handleDeployStatus(event: APIGatewayProxyEventV2) {
 }
 
 const InitBody = z.object({
+  inviteCode: z.string().min(1),
   supabaseUrl: z.string().min(1),
   supabaseServiceRoleKey: z.string().min(1),
 });
+
+function isValidInviteCode(code: string): boolean {
+  const validCodes = (process.env[ENV.INVITE_CODES] ?? '').split(',').map(c => c.trim()).filter(Boolean);
+  return validCodes.includes(code);
+}
 
 async function handleInit(event: APIGatewayProxyEventV2) {
   const result = InitBody.safeParse(parseBody(event));
   if (!result.success) return json(400, { error: result.error.flatten() });
 
-  const { supabaseUrl, supabaseServiceRoleKey } = result.data;
+  const { inviteCode, supabaseUrl, supabaseServiceRoleKey } = result.data;
+  if (!isValidInviteCode(inviteCode)) return json(401, { error: 'Invalid invite code' });
+
   const projectKey = `sj_${randomBytes(16).toString('hex')}`;
 
   await dynamo.send(new PutCommand({

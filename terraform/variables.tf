@@ -27,3 +27,10 @@ variable "log_retention_days" {
   type        = number
   default     = 7
 }
+
+variable "invite_codes" {
+  description = "Comma-separated invite codes required to register a project via /init during the waitlist rollout. Set via terraform.tfvars (gitignored) or TF_VAR_invite_codes."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

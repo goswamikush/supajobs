@@ -31,6 +31,12 @@ export async function init() {
   }
 
   const credentials = await p.group({
+    inviteCode: () => p.text({
+      message: 'Invite code (from the SupaJobs waitlist)',
+      validate: (val) => {
+        if (!val) return 'Required';
+      },
+    }),
     supabaseUrl: () => p.text({
       message: 'Supabase project URL',
       placeholder: 'https://xxxx.supabase.co',
@@ -67,6 +73,7 @@ export async function init() {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      inviteCode: credentials.inviteCode,
       supabaseUrl,
       supabaseServiceRoleKey: credentials.supabaseServiceRoleKey,
     }),
