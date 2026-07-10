@@ -1,14 +1,9 @@
 import * as p from '@clack/prompts';
-import { randomBytes } from 'crypto';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
-import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb';
-
-const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({ region: 'us-east-1' }));
+import { fetchWithRetry } from '../../lib/fetch.js';
 
 // SupaJobs infrastructure — updated when infra changes
 const INFRA = {
-  PROJECTS_TABLE: 'supajobs-projects',
   API_URL: 'https://1c34w32pgh.execute-api.us-east-1.amazonaws.com',
 };
 
@@ -63,21 +58,20 @@ export async function init() {
     },
   });
 
-  const projectKey = `sj_${randomBytes(16).toString('hex')}`;
   const supabaseUrl = credentials.supabaseUrl.trim().replace(/\/$/, '');
 
   const spinner = p.spinner();
 
   spinner.start('Registering project');
-  await dynamo.send(new PutCommand({
-    TableName: INFRA.PROJECTS_TABLE,
-    Item: {
-      projectKey,
+  const res = await fetchWithRetry(`${INFRA.API_URL}/init`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       supabaseUrl,
       supabaseServiceRoleKey: credentials.supabaseServiceRoleKey,
-      createdAt: new Date().toISOString(),
-    },
-  }));
+    }),
+  });
+  const { projectKey } = await res.json() as { projectKey: string };
   spinner.stop('Project registered');
 
   spinner.start('Provisioning supajobs_jobs table');
