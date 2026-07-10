@@ -55,6 +55,18 @@ data "aws_iam_policy_document" "lambda_permissions" {
     actions   = ["dynamodb:GetItem", "dynamodb:PutItem"]
     resources = [aws_dynamodb_table.projects.arn]
   }
+  statement {
+    actions   = ["s3:PutObject"]
+    resources = ["${aws_s3_bucket.builds.arn}/*"]
+  }
+  statement {
+    actions   = ["codebuild:StartBuild"]
+    resources = [aws_codebuild_project.worker.arn]
+  }
+  statement {
+    actions   = ["codebuild:BatchGetBuilds"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "lambda_permissions" {

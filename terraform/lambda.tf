@@ -27,6 +27,8 @@ resource "aws_lambda_function" "trigger" {
       ECS_SUBNETS         = join(",", data.aws_subnets.default.ids)
       ECS_SECURITY_GROUP  = aws_security_group.worker.id
       ECR_WORKER_REPO     = aws_ecr_repository.worker.repository_url
+      BUILDS_BUCKET       = aws_s3_bucket.builds.bucket
+      CODEBUILD_PROJECT   = aws_codebuild_project.worker.name
     }
   }
 

@@ -4,11 +4,16 @@ import { z } from 'zod';
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, GetCommand, PutCommand } from '@aws-sdk/lib-dynamodb';
 import { ECSClient, RunTaskCommand } from '@aws-sdk/client-ecs';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { CodeBuildClient, StartBuildCommand, BatchGetBuildsCommand } from '@aws-sdk/client-codebuild';
 import { fetchWithRetry } from '../lib/fetch.js';
 import { ENV, JobStatus } from '../lib/constants.js';
 
 const dynamo = DynamoDBDocumentClient.from(new DynamoDBClient({}));
 const ecs = new ECSClient({});
+const s3 = new S3Client({});
+const codebuild = new CodeBuildClient({});
 
 const CORS_HEADERS = {
   'Access-Control-Allow-Origin': '*',
@@ -94,6 +99,64 @@ async function handleRun(event: APIGatewayProxyEventV2) {
   return json(200, { jobId });
 }
 
+async function projectExists(projectKey: string): Promise<boolean> {
+  const { Item } = await dynamo.send(new GetCommand({
+    TableName: process.env[ENV.PROJECTS_TABLE],
+    Key: { projectKey },
+  }));
+  return !!Item;
+}
+
+const ProjectKeyBody = z.object({
+  projectKey: z.string(),
+});
+
+async function handleDeployUploadUrl(event: APIGatewayProxyEventV2) {
+  const result = ProjectKeyBody.safeParse(parseBody(event));
+  if (!result.success) return json(400, { error: result.error.flatten() });
+
+  const { projectKey } = result.data;
+  if (!(await projectExists(projectKey))) return json(401, { error: 'Invalid project key' });
+
+  const s3Key = `builds/${projectKey}/worker.zip`;
+  const uploadUrl = await getSignedUrl(
+    s3,
+    new PutObjectCommand({ Bucket: process.env[ENV.BUILDS_BUCKET], Key: s3Key }),
+    { expiresIn: 300 },
+  );
+
+  return json(200, { uploadUrl, s3Key });
+}
+
+async function handleDeployStart(event: APIGatewayProxyEventV2) {
+  const result = ProjectKeyBody.safeParse(parseBody(event));
+  if (!result.success) return json(400, { error: result.error.flatten() });
+
+  const { projectKey } = result.data;
+  if (!(await projectExists(projectKey))) return json(401, { error: 'Invalid project key' });
+
+  const s3Key = `builds/${projectKey}/worker.zip`;
+  const { build } = await codebuild.send(new StartBuildCommand({
+    projectName: process.env[ENV.CODEBUILD_PROJECT],
+    sourceTypeOverride: 'S3',
+    sourceLocationOverride: `${process.env[ENV.BUILDS_BUCKET]}/${s3Key}`,
+    environmentVariablesOverride: [{ name: 'PROJECT_KEY', value: projectKey }],
+  }));
+
+  return json(200, { buildId: build!.id });
+}
+
+async function handleDeployStatus(event: APIGatewayProxyEventV2) {
+  const buildId = event.queryStringParameters?.buildId;
+  if (!buildId) return json(400, { error: 'Missing buildId query parameter' });
+
+  const { builds } = await codebuild.send(new BatchGetBuildsCommand({ ids: [buildId] }));
+  const status = builds?.[0]?.buildStatus;
+  if (!status) return json(404, { error: 'Build not found' });
+
+  return json(200, { status });
+}
+
 const InitBody = z.object({
   supabaseUrl: z.string().min(1),
   supabaseServiceRoleKey: z.string().min(1),
@@ -130,6 +193,9 @@ export const handler = async (event: APIGatewayProxyEventV2) => {
   try {
     if (method === 'POST' && path === '/run') return await handleRun(event);
     if (method === 'POST' && path === '/init') return await handleInit(event);
+    if (method === 'POST' && path === '/deploy/upload-url') return await handleDeployUploadUrl(event);
+    if (method === 'POST' && path === '/deploy/start') return await handleDeployStart(event);
+    if (method === 'GET' && path === '/deploy/status') return await handleDeployStatus(event);
     return json(404, { error: 'Not found' });
   } catch (err) {
     const error = err instanceof Error ? err.message : String(err);
