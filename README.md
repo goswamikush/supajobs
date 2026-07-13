@@ -154,12 +154,18 @@ SupaJobs will automatically run `npm install` during the build.
 
 ---
 
-## Notes
+## Known limitations
 
-- **Cold start:** Fargate containers take ~30–60 seconds to spin up. SupaJobs is designed for background work, not real-time responses.
+This is early — here's what doesn't work yet, so you know before you hit it:
+
+- **No automatic retries.** If your worker throws, the job is marked `failed` with the error message, but SupaJobs won't retry it for you. Handle retries in your own worker code if you need them.
+- **No scheduled/cron jobs.** Every job run is triggered by an explicit `/run` call — there's no built-in scheduler yet.
+- **No concurrency or rate limits.** Nothing currently stops many `/run` calls from spinning up many concurrent Fargate tasks.
+- **Stuck jobs aren't always auto-recovered.** If your worker code throws, or a job runs past the 1-hour timeout, that's caught and reported as `failed`. But if the container is killed outright before it gets the chance to report anything — out-of-memory, a host failure, or similar — there's no external watchdog yet, and the job can stay at `pending`/`running` with no automatic failure. This should be rare, but if a job looks stuck for more than a few minutes with no log update, assume it crashed silently.
+- **Cold start:** Fargate containers take ~30–60 seconds to spin up. SupaJobs is built for background work, not real-time responses.
 - **Timeout:** Jobs are automatically killed after 1 hour.
-- **Logs:** Only `console.log` is captured. `console.error` goes to CloudWatch but not your Supabase table.
-- **Security:** Your `projectKey` acts as an API key — keep it secret. Your Supabase credentials are encrypted at rest in AWS.
+- **Logs:** Only `console.log` is captured. `console.error` goes to CloudWatch, which you don't have access to — not your Supabase table.
+- **Security:** Your `projectKey` acts as an API key — keep it secret. Your Supabase credentials are stored with AWS's default at-rest encryption (not yet per-project envelope encryption).
 
 ---
 
