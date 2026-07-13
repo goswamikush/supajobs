@@ -169,12 +169,17 @@ async function handleDeployStart(event: APIGatewayProxyEventV2) {
 
 async function handleDeployStatus(event: APIGatewayProxyEventV2) {
   const buildId = event.queryStringParameters?.buildId;
+  const projectKey = event.queryStringParameters?.projectKey;
   if (!buildId) return json(400, { error: 'Missing buildId query parameter' });
+  if (!projectKey) return json(400, { error: 'Missing projectKey query parameter' });
 
   const { builds } = await codebuild.send(new BatchGetBuildsCommand({ ids: [buildId] }));
   const build = builds?.[0];
   const status = build?.buildStatus;
   if (!status) return json(404, { error: 'Build not found' });
+
+  const buildProjectKey = build?.environment?.environmentVariables?.find(v => v.name === 'PROJECT_KEY')?.value;
+  if (buildProjectKey !== projectKey) return json(401, { error: 'Invalid project key for this build' });
 
   // Callers have no AWS console access, so surface the failing phase's own
   // message instead of pointing them at logs they can't see.

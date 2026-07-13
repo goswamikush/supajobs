@@ -82,7 +82,7 @@ export async function deploy() {
     while (true) {
       await new Promise(r => setTimeout(r, 5000));
 
-      const statusRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/status?buildId=${encodeURIComponent(buildId)}`, {
+      const statusRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/status?buildId=${encodeURIComponent(buildId)}&projectKey=${encodeURIComponent(projectKey)}`, {
         method: 'GET',
       });
       const { status, reason } = await statusRes.json() as { status: string; reason?: string };
