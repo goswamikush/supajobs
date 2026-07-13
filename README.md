@@ -17,7 +17,7 @@ One command to set up. One command to deploy. One HTTP call to trigger. Job stat
 
 Under the hood: AWS Fargate runs your job in an isolated container, AWS Lambda handles the trigger — all on SupaJobs' own AWS account. You never touch AWS or need credentials of your own; each project's code runs in its own container, isolated from other users.
 
-SupaJobs is currently invite-only while it's early — join the waitlist to get a code (link TBD).
+SupaJobs is currently invite-only while it's early — reach out to get an invite code.
 
 ---
 
