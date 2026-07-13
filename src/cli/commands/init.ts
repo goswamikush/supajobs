@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from 'fs';
-import { fetchWithRetry } from '../../lib/fetch.js';
+import { fetchWithRetry, HttpError } from '../../lib/fetch.js';
 
 // SupaJobs infrastructure — updated when infra changes
 const INFRA = {
@@ -69,6 +69,25 @@ export async function init() {
   const spinner = p.spinner();
 
   try {
+    const shapeError = checkServiceRoleKeyShape(credentials.supabaseServiceRoleKey);
+    if (shapeError) throw new Error(shapeError);
+
+    spinner.start('Verifying Supabase credentials');
+    try {
+      await fetchWithRetry(`${supabaseUrl}/rest/v1/`, {
+        headers: {
+          apikey: credentials.supabaseServiceRoleKey,
+          Authorization: `Bearer ${credentials.supabaseServiceRoleKey}`,
+        },
+      });
+    } catch (err) {
+      if (err instanceof HttpError) {
+        throw new Error(`Supabase rejected the service role key (HTTP ${err.status}) — copy it again from Settings → API → service_role.`);
+      }
+      throw new Error(`Could not reach ${supabaseUrl} — double check your Supabase project URL.`);
+    }
+    spinner.stop('Supabase credentials verified');
+
     spinner.start('Registering project');
     const res = await fetchWithRetry(`${INFRA.API_URL}/init`, {
       method: 'POST',
@@ -114,6 +133,21 @@ export async function init() {
     p.cancel(`Init failed: ${message}`);
     process.exit(1);
   }
+}
+
+function checkServiceRoleKeyShape(key: string): string | null {
+  const parts = key.split('.');
+  if (parts.length !== 3) return null; // not a JWT-shaped key (e.g. newer sb_secret_ format) — skip
+
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'));
+    if (payload.role && payload.role !== 'service_role') {
+      return `That looks like a "${payload.role}" key, not the service_role key. Copy it from Settings → API → service_role.`;
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 const WORKER_TEMPLATE = `export default {

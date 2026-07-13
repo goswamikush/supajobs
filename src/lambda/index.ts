@@ -70,7 +70,7 @@ async function handleRun(event: APIGatewayProxyEventV2) {
     }),
   });
 
-  await ecs.send(new RunTaskCommand({
+  const { failures } = await ecs.send(new RunTaskCommand({
     cluster: process.env[ENV.ECS_CLUSTER],
     taskDefinition: process.env[ENV.ECS_TASK_DEFINITION],
     launchType: 'FARGATE',
@@ -95,6 +95,27 @@ async function handleRun(event: APIGatewayProxyEventV2) {
       }],
     },
   }));
+
+  // RunTask can "succeed" at the SDK level while failing to actually schedule
+  // the task (capacity, networking, etc.) — the container never starts, so it
+  // can never self-report. Without this, the job would sit at "pending" forever.
+  if (failures && failures.length > 0) {
+    const reason = failures.map(f => f.reason).join('; ');
+    await fetchWithRetry(`${supabaseUrl}/rest/v1/supajobs_jobs?id=eq.${jobId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${supabaseServiceRoleKey}`,
+        apikey: supabaseServiceRoleKey,
+      },
+      body: JSON.stringify({
+        status: JobStatus.Failed,
+        finished_at: new Date().toISOString(),
+        error: `Failed to start job: ${reason}`,
+      }),
+    });
+    return json(502, { error: `Failed to start job: ${reason}`, jobId });
+  }
 
   return json(200, { jobId });
 }

@@ -54,8 +54,23 @@ setTimeout(async () => {
   process.exit(1);
 }, JOB_TIMEOUT_MS).unref();
 
-// @ts-ignore - workers are provided by the user at deploy time
-const worker = await import(`../workers/${workerName}.js`);
+let worker: { default: { run(payload: unknown): Promise<void> } };
+try {
+  // @ts-ignore - workers are provided by the user at deploy time
+  worker = await import(`../workers/${workerName}.js`);
+  if (typeof worker?.default?.run !== 'function') {
+    throw new Error(`Worker "${workerName}" has no default export with a run() function`);
+  }
+} catch (err) {
+  const error = err instanceof Error ? err.message : String(err);
+  await updateJob({
+    status: JobStatus.Failed,
+    finished_at: new Date().toISOString(),
+    logs: logs.join('\n'),
+    error: `Failed to load worker "${workerName}": ${error}`,
+  });
+  process.exit(1);
+}
 
 await updateJob({ status: JobStatus.Running, started_at: new Date().toISOString() });
 
