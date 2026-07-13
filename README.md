@@ -158,6 +158,7 @@ SupaJobs will automatically run `npm install` during the build.
 
 This is early — here's what doesn't work yet, so you know before you hit it:
 
+- **No secrets management for workers yet.** Your worker only ever receives the payload you pass at trigger time — there's no way to give it its own API keys (Resend, OpenAI, Stripe, etc.). For now you either hardcode a key in your worker file (it gets uploaded as part of your deploy) or pass it through `payload` at trigger time (which then gets persisted in plaintext in your own `supajobs_jobs` table, since the row is written before the job runs). Neither is great — treat this as unsolved for now.
 - **No automatic retries.** If your worker throws, the job is marked `failed` with the error message, but SupaJobs won't retry it for you. Handle retries in your own worker code if you need them.
 - **No scheduled/cron jobs.** Every job run is triggered by an explicit `/run` call — there's no built-in scheduler yet.
 - **No concurrency or rate limits.** Nothing currently stops many `/run` calls from spinning up many concurrent Fargate tasks.
