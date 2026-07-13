@@ -172,10 +172,19 @@ async function handleDeployStatus(event: APIGatewayProxyEventV2) {
   if (!buildId) return json(400, { error: 'Missing buildId query parameter' });
 
   const { builds } = await codebuild.send(new BatchGetBuildsCommand({ ids: [buildId] }));
-  const status = builds?.[0]?.buildStatus;
+  const build = builds?.[0];
+  const status = build?.buildStatus;
   if (!status) return json(404, { error: 'Build not found' });
 
-  return json(200, { status });
+  // Callers have no AWS console access, so surface the failing phase's own
+  // message instead of pointing them at logs they can't see.
+  let reason: string | undefined;
+  if (status !== 'SUCCEEDED' && status !== 'IN_PROGRESS') {
+    const failedPhase = build?.phases?.find(phase => phase.phaseStatus && phase.phaseStatus !== 'SUCCEEDED');
+    reason = failedPhase?.contexts?.map(c => c.message).filter(Boolean).join('; ') || undefined;
+  }
+
+  return json(200, { status, reason });
 }
 
 const InitBody = z.object({

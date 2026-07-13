@@ -34,3 +34,16 @@ variable "invite_codes" {
   default     = ""
   sensitive   = true
 }
+
+variable "budget_amount" {
+  description = "Monthly USD threshold for the account cost budget alert."
+  type        = string
+  default     = "50"
+}
+
+variable "budget_notification_email" {
+  description = "Email address to notify when spend approaches/exceeds budget_amount. Set via terraform.tfvars (gitignored) or TF_VAR_budget_notification_email."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

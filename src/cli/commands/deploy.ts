@@ -85,7 +85,7 @@ export async function deploy() {
       const statusRes = await fetchWithRetry(`${INFRA.API_URL}/deploy/status?buildId=${encodeURIComponent(buildId)}`, {
         method: 'GET',
       });
-      const { status } = await statusRes.json() as { status: string };
+      const { status, reason } = await statusRes.json() as { status: string; reason?: string };
 
       if (status === BuildStatus.Succeeded) {
         spinner.stop('Build succeeded');
@@ -94,7 +94,7 @@ export async function deploy() {
 
       if (status === BuildStatus.Failed || status === BuildStatus.Fault || status === BuildStatus.TimedOut || status === BuildStatus.Stopped) {
         spinner.stop(`Build ${status.toLowerCase()}`);
-        p.cancel('Deploy failed. Check AWS CodeBuild console for logs.');
+        p.cancel(`Deploy failed${reason ? `: ${reason}` : ''}. This is usually a problem in your worker code or package.json — check it over and try again.`);
         process.exit(1);
       }
     }
